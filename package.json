@@ -14,5 +14,10 @@
   "license": "ISC",
   "devDependencies": {
     "lite-server": "^2.3.0"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.5.0",
+    "openzeppelin-solidity": "^4.5.0",
+    "solc": "^0.8.3"
   }
 }
