@@ -20,14 +20,14 @@ contract GreenToken is ERC20, ERC20Burnable, Pausable, AccessControl {
     bytes32 public constant PROJECT_ROLE = keccak256("PROJECT_ROLE");
 
     uint256 Rate =1;
-    uint public INITIAL_SUPPLY = 12000;
+    // uint256 public INITIAL_SUPPLY = 1000*(10 ** uint256(decimals));
     enum Roles{ GOV, VALIDATOR, COMPANY, PROJECT }
 
     //list of addresses requesting verification
     //Should be poped out once they are analysed
     // address[] private addressesRequestingVerifierRole;
     mapping(address => bool) private addressesRequestingVerifierRole;
-
+    address owner;
 
 
     struct KYC_Company {
@@ -64,7 +64,12 @@ contract GreenToken is ERC20, ERC20Burnable, Pausable, AccessControl {
         _setRoleAdmin(GOVERNER_ROLE,DEFAULT_ADMIN_ROLE);
 
         //mint init token
-        _mint(msg.sender, INITIAL_SUPPLY);
+        // uint256 totalSupply = 10000 * (10 ** uint256(decimals));
+        // _mint(msg.sender, 10000 * (10 **uint256(decimals)));
+        _mint(address(this), 9000 * (10 **18));
+        // uint256 totalSupply = 10000 * (10 ** uint256(decimals));
+        //  owner = msg.sender;
+        
     }
 
     //request verifier role
@@ -111,8 +116,6 @@ contract GreenToken is ERC20, ERC20Burnable, Pausable, AccessControl {
     }
 
 
-
-
     //Project request to review their CO2 offset
 
      function requestProjectVerification( string calldata _registrationID, uint256 _tco2Reduction, uint256 _gntTokenBalance, string calldata _document_uri) public{
@@ -150,20 +153,60 @@ contract GreenToken is ERC20, ERC20Burnable, Pausable, AccessControl {
         _unpause();
     }
 
+
+    /*
+    ERC20 methods
+    */
+
     // Mint function is private since, it will be called by another func
-    function mint(address to, uint256 amount) private onlyRole(VERIFIER_ROLE) {
+    function mint(address to, uint256 amount) public onlyRole(VERIFIER_ROLE) {
         // Pop out the specific address
         
         require(hasRole(PROJECT_ROLE,to), "address is not a verified project");
-        _mint(to, amount);
+        _mint(to, amount*(10**18));
+        //Emit event (to be done)
+    }
+
+
+    /*Function for buying token by sending equivalent ether to contract
+        Buying token by company means:
+        1. Company request to buy XX GNT 
+        2. Check if sufficient GNT/ETH in the account
+        3. Payable Eth receive, and then send equivalent token to the account
+        4. Emit event 
+        5. Issue NFT for the transaction
+        
+        
+
+        Function to sell token to contract
+        1. Check sufficient balance in contract account
+        2. Rate decided by the contract
+        3. Add the asked token to the pool, and pay to the requesting amount in ETH equivalent
+        4. Emit event
+        5. Issue NFT for the transaction
+    */
+
+    //Implementation
+    function buyToken(address _tokenAddress) public payable { //onlyRole(COMPANY_ROLE)
+        // verifiedCompanies[msg.sender].gntTokenBalance.add(msg.value);
+        // approve(address(this),msg.value);
+        require(hasRole(COMPANY_ROLE,msg.sender) || hasRole(PROJECT_ROLE, msg.sender), "Not allowed");
+        IERC20 tokenContract = IERC20(_tokenAddress);
+        // transferFrom(owner,msg.sender,msg.value*(10**18)); //to transfer in max token unit
+        tokenContract.transfer(msg.sender, msg.value);
+        // address(this).send()
+
+    }
+
+    function sellToken(  uint256 amount) public{ //address _tokenAddress
+        // require(hasRole(COMPANY_ROLE,msg.sender) || hasRole(PROJECT_ROLE, msg.sender), "Not allowed");
+        // IERC20 tokenContract = IERC20(_tokenAddress);
+        payable(msg.sender).transfer( amount*(10**18));
+        transfer(address(this), amount*(10**18));
     }
 
 
 
-
-    // function transfer(address to, uint256 amount) public onlyRole(VERIFIER_ROLE){
-        
-    // }
 
 
     function _beforeTokenTransfer(address from, address to, uint256 amount)
