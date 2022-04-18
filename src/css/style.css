@@ -148,6 +148,7 @@ h5.subtitle {
   padding: 90px 0px;
 }
 
+
 .section-heading {
   text-align: center;
   width: 70%;
@@ -1687,6 +1688,11 @@ BLOG SINGLE
   .pricing-block {
     margin-bottom: 30px;
   }
+}
+
+.flex-container {
+  display: flex;
+  justify-content: space-between;
 }
 
 /*# sourceMappingURL=maps/style.css.map */
