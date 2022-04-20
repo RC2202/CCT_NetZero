@@ -304,6 +304,9 @@ App = {
 
       App.contracts.GreenToken.deployed().then(function(instance) {
           GreenTokenInstance = instance;
+          // const transaction = await contract.deposit({ value: ethers.utils.parseEther("0.1") })
+          // //sends 0.1 eth
+          // await transaction.wait()
 
           // Execute adopt as a transaction by sending account
           return GreenTokenInstance.buyToken(token_address, {from: account});
