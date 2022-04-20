@@ -71,9 +71,12 @@ contract GreenToken is ERC20, ERC20Burnable, Pausable, AccessControl {
         //  owner = msg.sender;
         
     }
+    //Declare an Event
+    event RequestVerifierEvent(address indexed _from);
 
     //request verifier role
     function requestVerifierRole() public{
+        emit RequestVerifierEvent(msg.sender);
         addressesRequestingVerifierRole[msg.sender]=true;
     }
 
