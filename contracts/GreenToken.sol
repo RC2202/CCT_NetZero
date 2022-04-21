@@ -100,19 +100,18 @@ contract GreenToken is ERC20, ERC20Burnable, Pausable, AccessControl {
     //frontend request 1st address in the list of verifier
 
 
-    function requestFirstAddressInVerifierList() public view onlyRole(getRoleAdmin(VERIFIER_ROLE))  returns(address){
-        return verifier_request_address[verifier_request_address.length-1];
+    function getVerifierRequests() public view onlyRole(getRoleAdmin(VERIFIER_ROLE))  returns(address[] memory){
+        return verifier_request_address;
     }
-    function requestFirstAddressInCompanyList() public view onlyRole(getRoleAdmin(COMPANY_ROLE))  returns(address, KYC_Company memory){
-        return( company_request_address[company_request_address.length-1], addressesRequestingCompanyVerification[company_request_address[company_request_address.length-1]]);
+    function getCompanyRequests() public view onlyRole(getRoleAdmin(COMPANY_ROLE))  returns(address[] memory){
+        return company_request_address;
     }
-    function requestFirstAddressInProjectList() public view onlyRole(getRoleAdmin(PROJECT_ROLE))  returns(address, KYC_Project memory){
-        return (project_request_address[project_request_address.length-1], addressesRequestingProjectVerification[project_request_address[project_request_address.length-1]]);
+    function getProjectRequests() public view onlyRole(getRoleAdmin(PROJECT_ROLE))  returns(address[] memory){
+        return project_request_address;
     }
 
     //request verifier role
     function requestVerifierRole() public{
-        emit RequestVerifierEvent(msg.sender);
         addressesRequestingVerifierRole[msg.sender]=true;
         verifier_request_address.push(msg.sender);
     }
@@ -120,21 +119,19 @@ contract GreenToken is ERC20, ERC20Burnable, Pausable, AccessControl {
     //grant verifier  role
     function grantVerifierRole(address applicantAddress) public onlyRole(getRoleAdmin(VERIFIER_ROLE)){
         require(addressesRequestingVerifierRole[applicantAddress],"Account did not request verification"); //--added this line to prevent non request address.
-        require(verifier_request_address[verifier_request_address.length-1] == applicantAddress, "Not the top");
         addressesRequestingVerifierRole[applicantAddress] =false;
         _grantRole(VERIFIER_ROLE,applicantAddress);
         delete addressesRequestingVerifierRole[applicantAddress];
         verifier_request_address.pop();
-        emit STATUS(true, applicantAddress);
+        // emit STATUS(true, applicantAddress);
     }
 
     //Reject verifier application
     function rejectVerifierApplication(address applicantAddress) public onlyRole(getRoleAdmin(VERIFIER_ROLE)){
         require(addressesRequestingVerifierRole[applicantAddress],"Account did not request verification"); //--added this line to prevent non request address.      
-        require(verifier_request_address[verifier_request_address.length-1] == applicantAddress, "Not the top");
         delete addressesRequestingVerifierRole[applicantAddress];
         verifier_request_address.pop();
-        emit STATUS(false, applicantAddress);
+        // emit STATUS(false, applicantAddress);
     }
 
 
@@ -151,7 +148,6 @@ contract GreenToken is ERC20, ERC20Burnable, Pausable, AccessControl {
     function companyApplicationVerified(address _companyAddress) public onlyRole(getRoleAdmin(COMPANY_ROLE)){
         //--added this line to prevent non request address.
         require(addressesRequestingCompanyVerification[_companyAddress].appliedForVerification,"Account did not request company verification");
-        require(company_request_address[company_request_address.length-1] == _companyAddress, "Not the top");
         addressesRequestingCompanyVerification[_companyAddress].appliedForVerification = false;
         _grantRole(COMPANY_ROLE,_companyAddress);
         //add to verified company list
@@ -160,17 +156,14 @@ contract GreenToken is ERC20, ERC20Burnable, Pausable, AccessControl {
         delete addressesRequestingCompanyVerification[_companyAddress];
         company_request_address.pop();
         //emit event to be done
-        emit STATUS(true, _companyAddress);
     }
 
     //Reject company request
     function companyApplicationRejected(address _companyAddress) public onlyRole(getRoleAdmin(COMPANY_ROLE)){
         require(addressesRequestingCompanyVerification[_companyAddress].appliedForVerification,"Account did not request company verification");
-        require(company_request_address[company_request_address.length-1] == _companyAddress, "Not the top");
         delete addressesRequestingCompanyVerification[_companyAddress];
         company_request_address.pop();
             //emit event to be done
-        emit STATUS(false, _companyAddress);
 
     }
 
@@ -187,7 +180,6 @@ contract GreenToken is ERC20, ERC20Burnable, Pausable, AccessControl {
     function projectApplicationVerified(address _projectAddress) public onlyRole(getRoleAdmin(PROJECT_ROLE)){
 
         require(addressesRequestingProjectVerification[_projectAddress].appliedForVerification,"Account did not request project verification");
-        require(project_request_address[project_request_address.length-1] == _projectAddress, "Not the top");
         addressesRequestingProjectVerification[_projectAddress].appliedForVerification = false;
         _grantRole(PROJECT_ROLE,_projectAddress);
         //add to verified project list
@@ -204,18 +196,15 @@ contract GreenToken is ERC20, ERC20Burnable, Pausable, AccessControl {
 
         tokenContract.transfer(_projectAddress, ((verifiedProjects[_projectAddress].tco2Reduction).mul(tco2_multiplier* (10 **18))));
         //emit event to be done
-        emit STATUS(true, _projectAddress);
 
     }
 
     //Reject proejct request
     function projectApplicationRejected(address _projectAddress) public onlyRole(getRoleAdmin(PROJECT_ROLE)){
         require(addressesRequestingProjectVerification[_projectAddress].appliedForVerification,"Account did not request project verification");
-        require(project_request_address[project_request_address.length-1] == _projectAddress, "Not the top");
         delete addressesRequestingProjectVerification[_projectAddress];
         project_request_address.pop();
             //emit event to be done
-        emit STATUS(false, _projectAddress);
     }
 
 
@@ -271,7 +260,6 @@ contract GreenToken is ERC20, ERC20Burnable, Pausable, AccessControl {
         // transferFrom(owner,msg.sender,msg.value*(10**18)); //to transfer in max token unit
         tokenContract.transfer(msg.sender, msg.value*Rate);
         // address(this).send()
-        emit STATUS(true, msg.sender);
 
     }
 
@@ -281,7 +269,6 @@ contract GreenToken is ERC20, ERC20Burnable, Pausable, AccessControl {
         //address(this) take this-> msg sender i guess
         payable(msg.sender).transfer( token*(10**18)/Rate);
         transfer(address(this), token*(10**18));
-        emit STATUS(true, msg.sender);
     }
 
 
