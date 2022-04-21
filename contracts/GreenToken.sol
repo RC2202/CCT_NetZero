@@ -19,10 +19,13 @@ contract GreenToken is ERC20, ERC20Burnable, Pausable, AccessControl {
     bytes32 public constant COMPANY_ROLE = keccak256("COMPANY_ROLE");
     bytes32 public constant PROJECT_ROLE = keccak256("PROJECT_ROLE");
 
-    uint256 Rate =1;
+    //token = tco2_multiplier*tCO2
+    uint private tco2_multiplier = 2.0;
+    //token = Rate*Ether
+    uint256 private Rate =5.0;
     // uint256 public INITIAL_SUPPLY = 1000*(10 ** uint256(decimals));
     enum Roles{ GOV, VALIDATOR, COMPANY, PROJECT }
-
+    //enum ApplicationStatus{}
     //list of addresses requesting verification
     //Should be poped out once they are analysed
     // address[] private addressesRequestingVerifierRole;
@@ -35,6 +38,7 @@ contract GreenToken is ERC20, ERC20Burnable, Pausable, AccessControl {
         uint256 tco2Emission;
         uint256 gntTokenBalance;
         string document_uri;
+        bool appliedForVerification;
     }
 
     
@@ -43,14 +47,35 @@ contract GreenToken is ERC20, ERC20Burnable, Pausable, AccessControl {
         uint256 tco2Reduction;
         uint256 gntTokenBalance;
         string document_uri;
+        bool appliedForVerification;
     }
+    //mappings
+
     mapping(address => KYC_Company) private addressesRequestingCompanyVerification;
     mapping(address => KYC_Project) private addressesRequestingProjectVerification;
-
     mapping(address => KYC_Company) public verifiedCompanies;
     mapping(address => KYC_Project) public verifiedProjects;
 
-    constructor() ERC20("GreenToken", "GNT") {
+
+    //arrays (fifo) keeps the list of addresses requesting specific roles
+    address[] public verifier_request_address;
+    address[] public company_request_address;
+    address[] public project_request_address;
+
+    //Events
+    //V,C,P are FIFO type array
+    // event VERIFIER_REQUEST(address);
+    // event COMPANY_REQUEST();
+    // event PROJECT_REQUEST();
+    // event COMPANY_DETAIL();
+    // event PROJECT_DETAIL();
+    // event VERIFIER_DETAIL();
+    event STATUS(bool, address);
+
+    IERC20 public tokenContract;
+
+    //--need to add mint amount in the constructor for initial tokens qty to mint
+    constructor(uint256 tokenQty) ERC20("GreenToken", "GNT")  {
         //assign all initial roles to contract creator
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(VERIFIER_ROLE, msg.sender);
@@ -66,29 +91,50 @@ contract GreenToken is ERC20, ERC20Burnable, Pausable, AccessControl {
         //mint init token
         // uint256 totalSupply = 10000 * (10 ** uint256(decimals));
         // _mint(msg.sender, 10000 * (10 **uint256(decimals)));
-        _mint(address(this), 9000 * (10 **18));
+        _mint(address(this), tokenQty * (10 **18));
         // uint256 totalSupply = 10000 * (10 ** uint256(decimals));
-        //  owner = msg.sender;
+         owner = msg.sender;
+         tokenContract = IERC20(address(this));
         
     }
-    //Declare an Event
-    event RequestVerifierEvent(address indexed _from);
+    //frontend request 1st address in the list of verifier
+
+
+    function requestFirstAddressInVerifierList() public view onlyRole(getRoleAdmin(VERIFIER_ROLE))  returns(address){
+        return verifier_request_address[verifier_request_address.length-1];
+    }
+    function requestFirstAddressInCompanyList() public view onlyRole(getRoleAdmin(COMPANY_ROLE))  returns(address, KYC_Company memory){
+        return( company_request_address[company_request_address.length-1], addressesRequestingCompanyVerification[company_request_address[company_request_address.length-1]]);
+    }
+    function requestFirstAddressInProjectList() public view onlyRole(getRoleAdmin(PROJECT_ROLE))  returns(address, KYC_Project memory){
+        return (project_request_address[project_request_address.length-1], addressesRequestingProjectVerification[project_request_address[project_request_address.length-1]]);
+    }
 
     //request verifier role
     function requestVerifierRole() public{
         emit RequestVerifierEvent(msg.sender);
         addressesRequestingVerifierRole[msg.sender]=true;
+        verifier_request_address.push(msg.sender);
     }
 
     //grant verifier  role
     function grantVerifierRole(address applicantAddress) public onlyRole(getRoleAdmin(VERIFIER_ROLE)){
+        require(addressesRequestingVerifierRole[applicantAddress],"Account did not request verification"); //--added this line to prevent non request address.
+        require(verifier_request_address[verifier_request_address.length-1] == applicantAddress, "Not the top");
+        addressesRequestingVerifierRole[applicantAddress] =false;
         _grantRole(VERIFIER_ROLE,applicantAddress);
         delete addressesRequestingVerifierRole[applicantAddress];
+        verifier_request_address.pop();
+        emit STATUS(true, applicantAddress);
     }
 
     //Reject verifier application
     function rejectVerifierApplication(address applicantAddress) public onlyRole(getRoleAdmin(VERIFIER_ROLE)){
+        require(addressesRequestingVerifierRole[applicantAddress],"Account did not request verification"); //--added this line to prevent non request address.      
+        require(verifier_request_address[verifier_request_address.length-1] == applicantAddress, "Not the top");
         delete addressesRequestingVerifierRole[applicantAddress];
+        verifier_request_address.pop();
+        emit STATUS(false, applicantAddress);
     }
 
 
@@ -96,54 +142,80 @@ contract GreenToken is ERC20, ERC20Burnable, Pausable, AccessControl {
     //change memory to calldata?
     function requestCompanyVerification( string calldata _registrationID, uint256 _tco2Emission, uint256 _gntTokenBalance, string calldata _document_uri) public{
         //save in addressesRequestingCompanyVerification
-        addressesRequestingCompanyVerification[msg.sender]= KYC_Company(_registrationID, _tco2Emission, _gntTokenBalance, _document_uri);
+        addressesRequestingCompanyVerification[msg.sender]= KYC_Company(_registrationID, _tco2Emission, _gntTokenBalance, _document_uri, true);
+        company_request_address.push(msg.sender);
     }
                 
     //Accept company request
 
     function companyApplicationVerified(address _companyAddress) public onlyRole(getRoleAdmin(COMPANY_ROLE)){
+        //--added this line to prevent non request address.
+        require(addressesRequestingCompanyVerification[_companyAddress].appliedForVerification,"Account did not request company verification");
+        require(company_request_address[company_request_address.length-1] == _companyAddress, "Not the top");
+        addressesRequestingCompanyVerification[_companyAddress].appliedForVerification = false;
         _grantRole(COMPANY_ROLE,_companyAddress);
         //add to verified company list
         verifiedCompanies[_companyAddress] = addressesRequestingCompanyVerification[_companyAddress];
         //verify if it is a copy or just referncing otherwise after delete phase, the data will be removed from verified compan yas ell
         delete addressesRequestingCompanyVerification[_companyAddress];
-
+        company_request_address.pop();
         //emit event to be done
+        emit STATUS(true, _companyAddress);
     }
 
     //Reject company request
     function companyApplicationRejected(address _companyAddress) public onlyRole(getRoleAdmin(COMPANY_ROLE)){
+        require(addressesRequestingCompanyVerification[_companyAddress].appliedForVerification,"Account did not request company verification");
+        require(company_request_address[company_request_address.length-1] == _companyAddress, "Not the top");
         delete addressesRequestingCompanyVerification[_companyAddress];
+        company_request_address.pop();
             //emit event to be done
+        emit STATUS(false, _companyAddress);
 
     }
 
 
     //Project request to review their CO2 offset
 
-     function requestProjectVerification( string calldata _registrationID, uint256 _tco2Reduction, uint256 _gntTokenBalance, string calldata _document_uri) public{
+     function requestProjectVerification ( string calldata _registrationID, uint256 _tco2Reduction, uint256 _gntTokenBalance, string calldata _document_uri) public{
         //save in addressesRequestingProjectVerification
-        addressesRequestingProjectVerification[msg.sender]= KYC_Project(_registrationID, _tco2Reduction, _gntTokenBalance, _document_uri);
+        addressesRequestingProjectVerification[msg.sender]= KYC_Project(_registrationID, _tco2Reduction, _gntTokenBalance, _document_uri, true);
+        project_request_address.push(msg.sender);
     }
     
     //Accept project requet
     function projectApplicationVerified(address _projectAddress) public onlyRole(getRoleAdmin(PROJECT_ROLE)){
+
+        require(addressesRequestingProjectVerification[_projectAddress].appliedForVerification,"Account did not request project verification");
+        require(project_request_address[project_request_address.length-1] == _projectAddress, "Not the top");
+        addressesRequestingProjectVerification[_projectAddress].appliedForVerification = false;
         _grantRole(PROJECT_ROLE,_projectAddress);
         //add to verified project list
         verifiedProjects[_projectAddress] = addressesRequestingProjectVerification[_projectAddress];
         //verify if it is a copy or just referncing otherwise after delete phase, the data will be removed from verified compan yas ell
         delete addressesRequestingProjectVerification[_projectAddress];
+        project_request_address.pop();
 
         //mint equivalent tokens
-        mint(_projectAddress, (verifiedProjects[_projectAddress].tco2Reduction).mul(Rate));
+        // mint(_projectAddress, (verifiedProjects[_projectAddress].tco2Reduction).mul(Rate));
+        //Should be transfer token instead of mint
+        // (payable address(this)).transfer(_projectAddress, (verifiedProjects[_projectAddress].tco2Reduction).mul(Rate));
+        // IERC20 tokenContract = IERC20(_tokenAddress);
+
+        tokenContract.transfer(_projectAddress, ((verifiedProjects[_projectAddress].tco2Reduction).mul(tco2_multiplier* (10 **18))));
         //emit event to be done
+        emit STATUS(true, _projectAddress);
+
     }
 
     //Reject proejct request
     function projectApplicationRejected(address _projectAddress) public onlyRole(getRoleAdmin(PROJECT_ROLE)){
+        require(addressesRequestingProjectVerification[_projectAddress].appliedForVerification,"Account did not request project verification");
+        require(project_request_address[project_request_address.length-1] == _projectAddress, "Not the top");
         delete addressesRequestingProjectVerification[_projectAddress];
+        project_request_address.pop();
             //emit event to be done
-
+        emit STATUS(false, _projectAddress);
     }
 
 
@@ -162,10 +234,10 @@ contract GreenToken is ERC20, ERC20Burnable, Pausable, AccessControl {
     */
 
     // Mint function is private since, it will be called by another func
-    function mint(address to, uint256 amount) public onlyRole(VERIFIER_ROLE) {
+    function mint(address to, uint256 amount) public onlyRole(GOVERNER_ROLE) {
         // Pop out the specific address
         
-        require(hasRole(PROJECT_ROLE,to), "address is not a verified project");
+        // require(hasRole(PROJECT_ROLE,to), "address is not a verified project");
         _mint(to, amount*(10**18));
         //Emit event (to be done)
     }
@@ -190,22 +262,26 @@ contract GreenToken is ERC20, ERC20Burnable, Pausable, AccessControl {
     */
 
     //Implementation
-    function buyToken(address _tokenAddress) public payable { //onlyRole(COMPANY_ROLE)
+    //removed addressparam 
+    function buyToken() public payable { //onlyRole(COMPANY_ROLE)
         // verifiedCompanies[msg.sender].gntTokenBalance.add(msg.value);
         // approve(address(this),msg.value);
         require(hasRole(COMPANY_ROLE,msg.sender) || hasRole(PROJECT_ROLE, msg.sender), "Not allowed");
-        IERC20 tokenContract = IERC20(_tokenAddress);
+        //IERC20 tokenContract = IERC20(_tokenAddress);
         // transferFrom(owner,msg.sender,msg.value*(10**18)); //to transfer in max token unit
-        tokenContract.transfer(msg.sender, msg.value);
+        tokenContract.transfer(msg.sender, msg.value*Rate);
         // address(this).send()
+        emit STATUS(true, msg.sender);
 
     }
 
-    function sellToken(  uint256 amount) public{ //address _tokenAddress
+    function sellToken(  uint256 token) public{ //address _tokenAddress
         // require(hasRole(COMPANY_ROLE,msg.sender) || hasRole(PROJECT_ROLE, msg.sender), "Not allowed");
         // IERC20 tokenContract = IERC20(_tokenAddress);
-        payable(msg.sender).transfer( amount*(10**18));
-        transfer(address(this), amount*(10**18));
+        //address(this) take this-> msg sender i guess
+        payable(msg.sender).transfer( token*(10**18)/Rate);
+        transfer(address(this), token*(10**18));
+        emit STATUS(true, msg.sender);
     }
 
 
