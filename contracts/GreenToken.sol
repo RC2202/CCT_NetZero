@@ -20,16 +20,21 @@ contract GreenToken is ERC20, ERC20Burnable, Pausable, AccessControl {
     bytes32 public constant PROJECT_ROLE = keccak256("PROJECT_ROLE");
 
     //token = tco2_multiplier*tCO2
-    uint private tco2_multiplier = 2.0;
+    uint private tco2_multiplier = 1.0;
     //token = Rate*Ether
-    uint256 private Rate =5.0;
+    uint256 private Rate =1.0;
     // uint256 public INITIAL_SUPPLY = 1000*(10 ** uint256(decimals));
     enum Roles{ GOV, VALIDATOR, COMPANY, PROJECT }
     //enum ApplicationStatus{}
     //list of addresses requesting verification
     //Should be poped out once they are analysed
     // address[] private addressesRequestingVerifierRole;
-    mapping(address => bool) private addressesRequestingVerifierRole;
+    struct KYC_Verifier {
+        string registrationID;
+        bool appliedForVerification;
+    } 
+
+    mapping(address => KYC_Verifier) private addressesRequestingVerifierRole;
     address owner;
 
 
@@ -100,38 +105,50 @@ contract GreenToken is ERC20, ERC20Burnable, Pausable, AccessControl {
     //frontend request 1st address in the list of verifier
 
 
-    function getVerifierRequests() public view onlyRole(getRoleAdmin(VERIFIER_ROLE))  returns(address[] memory){
-        return verifier_request_address;
+    function requestFirstAddressInVerifierList() public view onlyRole(getRoleAdmin(VERIFIER_ROLE))  returns(address, string memory){
+        address addr = verifier_request_address[verifier_request_address.length-1];
+        return ( addr,
+                addressesRequestingVerifierRole[addr].registrationID);
     }
-    function getCompanyRequests() public view onlyRole(getRoleAdmin(COMPANY_ROLE))  returns(address[] memory){
-        return company_request_address;
+    function requestFirstAddressInCompanyList() public view onlyRole(getRoleAdmin(COMPANY_ROLE))  returns(address, string memory, uint256, uint256, string memory){
+        address addr = company_request_address[company_request_address.length-1];
+        return ( addr,
+                addressesRequestingCompanyVerification[addr].registrationID,
+                addressesRequestingCompanyVerification[addr].tco2Emission,
+                addressesRequestingCompanyVerification[addr].gntTokenBalance,
+                addressesRequestingCompanyVerification[addr].document_uri);
     }
-    function getProjectRequests() public view onlyRole(getRoleAdmin(PROJECT_ROLE))  returns(address[] memory){
-        return project_request_address;
+    function requestFirstAddressInProjectList() public view onlyRole(getRoleAdmin(PROJECT_ROLE))  returns(address, string memory, uint256, uint256, string memory){
+        address addr = project_request_address[project_request_address.length-1];
+        return ( addr,
+                addressesRequestingProjectVerification[addr].registrationID,
+                addressesRequestingProjectVerification[addr].tco2Reduction,
+                addressesRequestingProjectVerification[addr].gntTokenBalance,
+                addressesRequestingProjectVerification[addr].document_uri);
     }
 
     //request verifier role
-    function requestVerifierRole() public{
-        addressesRequestingVerifierRole[msg.sender]=true;
+    function requestVerifierRole( string calldata _registrationID) public{
+        addressesRequestingVerifierRole[msg.sender]=KYC_Verifier(_registrationID, true);
         verifier_request_address.push(msg.sender);
     }
 
     //grant verifier  role
     function grantVerifierRole(address applicantAddress) public onlyRole(getRoleAdmin(VERIFIER_ROLE)){
-        require(addressesRequestingVerifierRole[applicantAddress],"Account did not request verification"); //--added this line to prevent non request address.
-        addressesRequestingVerifierRole[applicantAddress] =false;
+        require(addressesRequestingVerifierRole[applicantAddress].appliedForVerification,"Account did not request verification"); //--added this line to prevent non request address.
+        require(verifier_request_address[verifier_request_address.length-1] == applicantAddress, "Not the top");
+        addressesRequestingVerifierRole[applicantAddress].appliedForVerification =false;
         _grantRole(VERIFIER_ROLE,applicantAddress);
         delete addressesRequestingVerifierRole[applicantAddress];
         verifier_request_address.pop();
-        // emit STATUS(true, applicantAddress);
     }
 
     //Reject verifier application
     function rejectVerifierApplication(address applicantAddress) public onlyRole(getRoleAdmin(VERIFIER_ROLE)){
-        require(addressesRequestingVerifierRole[applicantAddress],"Account did not request verification"); //--added this line to prevent non request address.      
+        require(addressesRequestingVerifierRole[applicantAddress].appliedForVerification,"Account did not request verification"); //--added this line to prevent non request address.      
+        require(verifier_request_address[verifier_request_address.length-1] == applicantAddress, "Not the top");
         delete addressesRequestingVerifierRole[applicantAddress];
         verifier_request_address.pop();
-        // emit STATUS(false, applicantAddress);
     }
 
 
@@ -148,6 +165,7 @@ contract GreenToken is ERC20, ERC20Burnable, Pausable, AccessControl {
     function companyApplicationVerified(address _companyAddress) public onlyRole(getRoleAdmin(COMPANY_ROLE)){
         //--added this line to prevent non request address.
         require(addressesRequestingCompanyVerification[_companyAddress].appliedForVerification,"Account did not request company verification");
+        require(company_request_address[company_request_address.length-1] == _companyAddress, "Not the top");
         addressesRequestingCompanyVerification[_companyAddress].appliedForVerification = false;
         _grantRole(COMPANY_ROLE,_companyAddress);
         //add to verified company list
@@ -161,6 +179,7 @@ contract GreenToken is ERC20, ERC20Burnable, Pausable, AccessControl {
     //Reject company request
     function companyApplicationRejected(address _companyAddress) public onlyRole(getRoleAdmin(COMPANY_ROLE)){
         require(addressesRequestingCompanyVerification[_companyAddress].appliedForVerification,"Account did not request company verification");
+        require(company_request_address[company_request_address.length-1] == _companyAddress, "Not the top");
         delete addressesRequestingCompanyVerification[_companyAddress];
         company_request_address.pop();
             //emit event to be done
@@ -180,6 +199,7 @@ contract GreenToken is ERC20, ERC20Burnable, Pausable, AccessControl {
     function projectApplicationVerified(address _projectAddress) public onlyRole(getRoleAdmin(PROJECT_ROLE)){
 
         require(addressesRequestingProjectVerification[_projectAddress].appliedForVerification,"Account did not request project verification");
+        require(project_request_address[project_request_address.length-1] == _projectAddress, "Not the top");
         addressesRequestingProjectVerification[_projectAddress].appliedForVerification = false;
         _grantRole(PROJECT_ROLE,_projectAddress);
         //add to verified project list
@@ -202,6 +222,7 @@ contract GreenToken is ERC20, ERC20Burnable, Pausable, AccessControl {
     //Reject proejct request
     function projectApplicationRejected(address _projectAddress) public onlyRole(getRoleAdmin(PROJECT_ROLE)){
         require(addressesRequestingProjectVerification[_projectAddress].appliedForVerification,"Account did not request project verification");
+        require(project_request_address[project_request_address.length-1] == _projectAddress, "Not the top");
         delete addressesRequestingProjectVerification[_projectAddress];
         project_request_address.pop();
             //emit event to be done
@@ -241,7 +262,6 @@ contract GreenToken is ERC20, ERC20Burnable, Pausable, AccessControl {
         5. Issue NFT for the transaction
         
         
-
         Function to sell token to contract
         1. Check sufficient balance in contract account
         2. Rate decided by the contract

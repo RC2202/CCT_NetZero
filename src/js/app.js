@@ -1,9 +1,9 @@
 App = {
   web3Provider: null,
   contracts: {},
-  verifier_request: [],
-  company_request: [],
-  project_request: [],
+  verifier_request: null,
+  company_request: null,
+  project_request: null,
 
   init: async function() {
     console.log("Initing");
@@ -53,7 +53,7 @@ App = {
 
   bindEvents: function() {
     console.log("Binding Events");
-    $(document).on('click', '.btn-verifier-register', App.handleVerifierRoleRequest);
+    $(document).on('submit', '.verifier_registration_form', App.handleVerifierRoleRequest);
     $(document).on('submit', '.company_verifier', App.handleCompanyVerificationRequest);
     $(document).on('submit', '.project_verifier', App.handleProjectVerificationRequest);
     $(document).on('reset', '.admin_verifier_decision', App.handleVerificationRejection);
@@ -71,6 +71,7 @@ App = {
   handleVerifierRoleRequest: function(event) {
     console.log("Handling Verifier Role Request");
     event.preventDefault();
+    const verifier_id = event.target.verifier_id.value;
     
     web3.eth.getAccounts(function(error, accounts) {
       if (error) {
@@ -84,7 +85,7 @@ App = {
           GreenTokenInstance = instance;
 
           // Execute adopt as a transaction by sending account
-          return GreenTokenInstance.requestVerifierRole({from: account});
+          return GreenTokenInstance.requestVerifierRole(verifier_id, {from: account});
       }).then(function(result) {
         alert("Verifier Request Completed!");
         console.log("Verifier Request Completed", result);
@@ -168,18 +169,16 @@ App = {
   handleVerificationRejection: function(event) {
     console.log("Verifier Rejection");
     event.preventDefault();
-    let idx = parseInt(event.target.getAttribute('id').split('_')[2]);
-    App.handleVerifierDecision(false, idx);
+    App.handleVerifierDecision(false);
   },
 
   handleVerificationAccept: function(event) {
     console.log("Verifier Acceptance");
     event.preventDefault();
-    let idx = parseInt(event.target.getAttribute('id').split('_')[2]);
-    App.handleVerifierDecision(true, idx);
+    App.handleVerifierDecision(true);
   },
 
-  handleVerifierDecision: function(accept, idx) {
+  handleVerifierDecision: function(accept) {
     console.log("Handling Verifier Decision");
     
     web3.eth.getAccounts(function(error, accounts) {
@@ -192,19 +191,17 @@ App = {
 
       App.contracts.GreenToken.deployed().then(function(instance) {
           GreenTokenInstance = instance;
-          console.log(App.verifier_request[idx]);
-          console.log(typeof App.verifier_request[idx]);
-          console.log(typeof account);
           // Execute adopt as a transaction by sending account
           if (accept) {
-            return GreenTokenInstance.grantVerifierRole(App.verifier_request[idx], {from: account});
+            return GreenTokenInstance.grantVerifierRole(App.verifier_request, {from: account});
           } else {
-            return GreenTokenInstance.rejectVerifierApplication(App.verifier_request[idx], {from: account});
+            return GreenTokenInstance.rejectVerifierApplication(App.verifier_request, {from: account});
           }
       }).then(function(result) {
         alert("Verification Decision Processed!");
         console.log("Verification Decision Processed", result)
-        document.getElementById('verifier_decision_' + idx).remove();
+        
+        App.updateVerifications();
       }).catch(function(err) {
         alert("Error! Request didn't go through!");
         console.log(err.message);
@@ -216,18 +213,16 @@ App = {
   handleCompanyRejection: function(event) {
     console.log("Company Rejection");
     event.preventDefault();
-    let idx = parseInt(event.target.getAttribute('id').split('_')[2]);
-    App.handleCompanyDecision(false, idx);
+    App.handleCompanyDecision(false);
   },
 
   handleCompanyAccept: function(event) {
     console.log("Company Acceptance");
     event.preventDefault();
-    let idx = parseInt(event.target.getAttribute('id').split('_')[2]);
-    App.handleCompanyDecision(true, idx);
+    App.handleCompanyDecision(true);
   },
 
-  handleCompanyDecision: function(accept, idx) {
+  handleCompanyDecision: function(accept) {
     console.log("Handling Company Decision");
 
     web3.eth.getAccounts(function(error, accounts) {
@@ -243,14 +238,14 @@ App = {
 
           // Execute adopt as a transaction by sending account
           if (accept) {
-            return GreenTokenInstance.companyApplicationVerified(App.company_request[idx], {from: account});
+            return GreenTokenInstance.companyApplicationVerified(App.company_request, {from: account});
           } else {
-            return GreenTokenInstance.companyApplicationRejected(App.company_request[idx], {from: account});
+            return GreenTokenInstance.companyApplicationRejected(App.company_request, {from: account});
           }
       }).then(function(result) {
         alert("Company Decision Processed!");
         console.log("Company Decision Processed", result);
-        $('company_decision_' + idx).remove();
+        App.updateVerifications();
       }).catch(function(err) {
         alert("Error! Request didn't go through!");
         console.log(err.message);
@@ -262,18 +257,16 @@ App = {
   handleProjectRejection: function(event) {
     console.log("Project Rejection");
     event.preventDefault();
-    let idx = parseInt(event.target.getAttribute('id').split('_')[2]);
     App.handleProjectDecision(false);
   },
 
   handleProjectAccept: function(event) {
     console.log("Project Acceptance");
     event.preventDefault();
-    let idx = parseInt(event.target.getAttribute('id').split('_')[2]);
     App.handleProjectDecision(true);
   },
 
-  handleProjectDecision: function(accept, idx) {
+  handleProjectDecision: function(accept) {
     console.log("Handling Project Decision");
 
     web3.eth.getAccounts(function(error, accounts) {
@@ -289,14 +282,14 @@ App = {
 
           // Execute adopt as a transaction by sending account
           if (accept) {
-            return GreenTokenInstance.projectApplicationVerified(App.project_request[idx], {from: account});
+            return GreenTokenInstance.projectApplicationVerified(App.project_request, {from: account});
           } else {
-            return GreenTokenInstance.projectApplicationRejected(App.project_request[idx], {from: account});
+            return GreenTokenInstance.projectApplicationRejected(App.project_request, {from: account});
           }
       }).then(function(result) {
         alert("Project Decision Processed!");
         console.log("Project Decision Processed", result);
-        $('project_decision_' + idx).remove();
+        App.updateVerifications();
       }).catch(function(err) {
         alert("Error! Request didn't go through!");
         console.log(err.message);
@@ -331,10 +324,11 @@ App = {
           // await transaction.wait()
 
           // Execute adopt as a transaction by sending account
-          return GreenTokenInstance.buyToken.call({from: account, value: token_amount });
+          return GreenTokenInstance.buyToken({from: account, value: token_amount * (10 ** 18)});
       }).then(function(result) {
         alert("Bought Token!");
-        console.log("Buy Processed", result)
+        console.log("Buy Processed", result);
+        App.updateVerifications();
       }).catch(function(err) {
         alert("Error! Request didn't go through!");
         console.log(err.message);
@@ -361,10 +355,11 @@ App = {
           GreenTokenInstance = instance;
 
           // Execute adopt as a transaction by sending account
-          return GreenTokenInstance.sellToken.call(token_amount, {from: account});
+          return GreenTokenInstance.sellToken(token_amount, {from: account});
       }).then(function(result) {
         alert("Sold Tokens!");
-        console.log("Sell Processed", result)
+        console.log("Sell Processed", result);
+        App.updateVerifications();
       }).catch(function(err) {
         alert("Error! Request didn't go through!");
         console.log(err.message);
@@ -374,6 +369,21 @@ App = {
 
   updateVerifications: function() {
     console.log("Update values");
+    if($('#verifier_decision').length) {
+      document.getElementById('verifier_decision').remove();
+    }
+    if($('#company_decision').length) {
+      document.getElementById('company_decision').remove();
+    }
+    if($('#project_decision').length) {
+      document.getElementById('project_decision').remove();
+    }
+    if($('#balanceResult').length) {
+      document.getElementById('balanceResult').remove();
+    }
+    if($('#supplyResult').length) {
+      document.getElementById('supplyResult').remove();
+    }
 
     web3.eth.getAccounts(function(error, accounts) {
       if (error) {
@@ -386,32 +396,30 @@ App = {
         GreenTokenInstance = instance;
     
         // Execute adopt as a transaction by sending account
-        return GreenTokenInstance.getVerifierRequests.call({from: account});
+        return GreenTokenInstance.requestFirstAddressInVerifierList.call({from: account});
         }).then(function(result) {
           console.log("Update Verifier", result);
-          let curr_array_size = App.verifier_request.length;
-          for (i = 0; i < result.length; i++) {
-            if (!App.verifier_request.includes(result[i]) && result[i] !== '0x0000000000000000000000000000000000000000') {
-              App.verifier_request.push(result[i]);
-            }
-          }
-          for (i = curr_array_size; i < App.verifier_request.length; i++) {
-            $('#verifier_approval').append(`
-            <form id="verifier_decision_${i}" class="contact__form admin_verifier_decision">
-              <div  class="row">
-            <div id="verifier_form_${i}" class="col-md-8 form-group">
-              <p>${result[i]}</p>
-              </div>
-              <div class="col-md-2 form-group">
-                  <input id="verifier_accept_${i}" name="accept" type="submit" class="btn btn-circled btn-success" value="Accept">
-              </div>
-              <div class="col-md-2 form-group">
-                  <input id="verifier_reject_${i}" name="reject" type="reset" class="btn btn-circled btn-danger" value="Reject">
-              </div>
-              </div>
-              </form>`
-              );
-          }
+          App.verifier_request = result[0];
+          $('#verifier_approval').append(`
+          <form id="verifier_decision" class="contact__form admin_verifier_decision">
+            <div  class="row">
+          <div id="verifier_form" class="col-md-12 form-group" style="text-align:center">
+            <p>Address: <b>${result[0]}</b></p>
+            </div>
+            <div class="col-md-12 form-group" style="text-align:center">
+            <p>Verifier ID: <b>${result[1]}</b></p>
+            </div>
+            <div class="flex-container col-md-12">
+            <div class="form-group">
+                <input id="verifier_accept" name="accept" type="submit" class="btn btn-circled btn-success" value="Accept">
+            </div>
+            <div class="form-group">
+                <input id="verifier_reject" name="reject" type="reset" class="btn btn-circled btn-danger" value="Reject">
+            </div>
+            </div>
+            </div>
+            </form>`
+            );
         }).catch(function(err) {
           console.log(err.message);
         });
@@ -428,32 +436,42 @@ App = {
       GreenTokenInstance = instance;
   
       // Execute adopt as a transaction by sending account
-      return GreenTokenInstance.getCompanyRequests.call({from: account});
+      return GreenTokenInstance.requestFirstAddressInCompanyList.call({from: account});
       }).then(function(result) {
         console.log("Update Company", result);
-        let curr_array_size = App.company_request.length;
-          for (i = 0; i < result.length; i++) {
-            if (!App.company_request.includes(result[i]) && result[i] !== '0x0000000000000000000000000000000000000000') {
-              App.company_request.push(result[i]);
-            }
-          }
-          for (i = curr_array_size; i < App.company_request.length; i++) {
-            $('#company_approval').append(`
-            <form id="company_decision_${i}" class="contact__form admin_company_decision">
-              <div  class="row">
-            <div id="company_form_${i}" class="col-md-8 form-group">
-              <p>${result[i]}</p>
-              </div>
-              <div class="col-md-2 form-group">
-                  <input id="company_accept_${i}" name="accept" type="submit" class="btn btn-circled btn-success" value="Accept">
-              </div>
-              <div class="col-md-2 form-group">
-                  <input id="company_reject_${i}" name="reject" type="reset" class="btn btn-circled btn-danger" value="Reject">
-              </div>
-              </div>
-              </form>`
-              );
-          }
+        App.company_request = result[0];
+          $('#company_approval').append(`
+          <form id="company_decision" class="contact__form admin_company_decision">
+            <div  class="row">
+          <div id="company_form" class="col-md-12 form-group" style="text-align:center">
+            <p>Address: <b>${result[0]}</b></p>
+            </div>
+
+            <div class="col-md-12 form-group" style="text-align:center">
+            <p>Company ID: <b>${result[1]}</b></p>
+            </div>
+
+            <div class="col-md-6 form-group" style="text-align:center">
+            <p>Tons of CO2 Emissions: <b>${result[2]}</b></p>
+            </div>
+            <div class="col-md-6 form-group" style="text-align:center">
+            <p>Grant Token Balance: <b>${result[3]}</b></p>
+            </div>
+
+            <div class="col-md-12 form-group" style="text-align:center">
+            <p>Document URI: <b>${result[4]}</b></p>
+            </div>
+            <div class="flex-container col-md-12">
+            <div class="form-group">
+                <input id="verifier_accept" name="accept" type="submit" class="btn btn-circled btn-success" value="Accept">
+            </div>
+            <div class="form-group">
+                <input id="verifier_reject" name="reject" type="reset" class="btn btn-circled btn-danger" value="Reject">
+            </div>
+            </div>
+            </div>
+            </form>`
+            );
       }).catch(function(err) {
         console.log(err.message);
       });
@@ -470,32 +488,42 @@ web3.eth.getAccounts(async function(error, accounts) {
     GreenTokenInstance = instance;
 
     // Execute adopt as a transaction by sending account
-    return GreenTokenInstance.getProjectRequests.call({from: account});
+    return GreenTokenInstance.requestFirstAddressInProjectList.call({from: account});
     }).then(function(result) {
       console.log("Update Project", result);
-      let curr_array_size = App.project_request.length;
-          for (i = 0; i < result.length; i++) {
-            if (!App.project_request.includes(result[i]) && result[i] !== '0x0000000000000000000000000000000000000000') {
-              App.project_request.push(result[i]);
-            }
-          }
-          for (i = curr_array_size; i < App.project_request.length; i++) {
-            $('#project_approval').append(`
-            <form id="project_decision_${i}" class="contact__form admin_project_decision">
-              <div  class="row">
-            <div id="project_form_${i}" class="col-md-8 form-group">
-              <p>${result[i]}</p>
-              </div>
-              <div class="col-md-2 form-group">
-                  <input id="project_accept_${i}" name="accept" type="submit" class="btn btn-circled btn-success" value="Accept">
-              </div>
-              <div class="col-md-2 form-group">
-                  <input id="project_reject_${i}" name="reject" type="reset" class="btn btn-circled btn-danger" value="Reject">
-              </div>
-              </div>
-              </form>`
-              );
-          }
+      App.project_request = result[0];
+      $('#project_approval').append(`
+        <form id="project_decision" class="contact__form admin_project_decision">
+          <div  class="row">
+          <div id="project_form" class="col-md-12 form-group" style="text-align:center">
+          <p>Address: <b>${result[0]}</b></p>
+          </div>
+
+          <div class="col-md-12 form-group" style="text-align:center">
+          <p>Project ID: <b>${result[1]}</b></p>
+          </div>
+
+          <div class="col-md-6 form-group" style="text-align:center">
+          <p>Tons of CO2 Reduction:<b>${result[2]}</b></p>
+          </div>
+          <div class="col-md-6 form-group" style="text-align:center">
+          <p>Grant Token Balance: <b>${result[3]}</b></p>
+          </div>
+
+          <div class="col-md-12 form-group" style="text-align:center">
+          <p>Document URI: <b>${result[4]}</b></p>
+          </div>
+          <div class="flex-container col-md-12">
+          <div class="form-group">
+              <input id="verifier_accept" name="accept" type="submit" class="btn btn-circled btn-success" value="Accept">
+          </div>
+          <div class="form-group">
+              <input id="verifier_reject" name="reject" type="reset" class="btn btn-circled btn-danger" value="Reject">
+          </div>
+          </div>
+          </div>
+          </form>`
+          );
     }).catch(function(err) {
       console.log(err.message);
     });
@@ -514,11 +542,33 @@ web3.eth.getAccounts(async function(error, accounts) {
     // Execute adopt as a transaction by sending account
     return GreenTokenInstance.balanceOf.call(account, {from: account});
     }).then(function(result) {
-      console.log("BalanceOf", result);
+      console.log("BalanceOf", parseInt(result));
+      $('#balanceOf').append(`<p id="balanceResult">Total Balance: <b>${parseFloat(result)/(10**18)}</b></p>`)
     }).catch(function(err) {
       console.log(err.message);
     });
   });
+
+  web3.eth.getAccounts(async function(error, accounts) {
+    if (error) {
+      alert("Error! Couldn't connect to your account!");
+      console.log(error);
+    }
+    var account = accounts[0];
+  
+    App.contracts.GreenToken.deployed().then(function(instance) {
+      GreenTokenInstance = instance;
+  
+      // Execute adopt as a transaction by sending account
+      return GreenTokenInstance.totalSupply.call({from: account});
+      }).then(function(result) {
+        console.log("totalSupply", parseInt(result));
+        $('#totalSupply').append(`<p id="supplyResult">Total Supply: <b>${parseFloat(result)/(10**18)}</b></p>`)
+      }).catch(function(err) {
+        console.log(err.message);
+      });
+    });
+    
   }
 
 };

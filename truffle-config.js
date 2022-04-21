@@ -14,7 +14,13 @@ module.exports = {
   compilers: {
     solc: {
       version: '0.8.3',
-      parser: 'solcjs'
+      parser: 'solcjs',
+      settings: {
+        optimizer: {
+          enabled: true,
+          runs: 1500
+        }
+      }
     }
   }
 };
