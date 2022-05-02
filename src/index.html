@@ -9,7 +9,7 @@
     <meta name="keywords" content="marketing,digital marketing,creative, agency, startup,promodise,onepage, clean, modern,seo,business, company">
     <meta name="author" content="Themefisher.com">
 
-   <title>Promodise - seo and digital marketing solution </title>
+   <title>GreenTokens </title>
     <!-- bootstrap.min css -->
     <link rel="stylesheet" href="plugins/bootstrap/css/bootstrap.css">
     <!-- Icofont Css -->
@@ -91,7 +91,18 @@
             <div class="col-lg-12 col-sm-12 m-auto">
                 <div class="section-heading">
                     <h4 class="section-title">Register as a Verifier Today!</h4>
-                    <button class="btn btn-default btn-verifier-register" type="button" data-id="0">Register as a Verifier</button>    
+                    <div class="contact-form ">
+                        <form class="contact__form verifier_registration_form">
+                            <div class="row">
+                                <div class="col-md-6 form-group">
+                                    <input name="verifier_id" type="text" class="form-control" placeholder="Verifier ID" required>
+                                </div>
+                                <div class="col-md-6 text-center">
+                                    <input name="submit" type="submit" class=" btn btn-hero btn-circled" value="Register as a Verifier">
+                                </div>
+                            </div>
+                        </form>
+                    </div>  
                 </div>
             </div>
         </div>
@@ -224,21 +235,8 @@
         </div>
         <div class="row">
             <div class="col-lg-8 col-sm-12 m-auto">
-                <div class="contact-form ">
-                    <form class="contact__form admin_verifier_decision">
-                        <!-- end message -->
-                        <div class="row">
-                            <div class="col-md-8 form-group">
-                                <input name="verifier_decision" type="text" class="form-control" placeholder="Verifier Address" required>
-                            </div>
-                            <div class="col-md-2 form-group">
-                                <input name="accept" type="submit" class="btn btn-hero btn-circled bg-success" value="Accept">
-                            </div>
-                            <div class="col-md-2 form-group">
-                                <input name="reject" type="reset" class="btn btn-hero btn-circled bg-danger" value="Reject">
-                            </div>
-                        </div>
-                    </form>
+                <div id="verifier_approval" class="contact-form ">
+                    
                 </div>
             </div>
         </div>
@@ -251,21 +249,8 @@
         </div>
         <div class="row">
             <div class="col-lg-8 col-sm-12 m-auto">
-                <div class="contact-form ">
-                    <form class="contact__form admin_company_decision">
-                        <!-- end message -->
-                        <div class="row">
-                            <div class="col-md-8 form-group">
-                                <input name="company_decision" type="text" class="form-control" placeholder="Company Address" required>
-                            </div>
-                            <div class="col-md-2 form-group">
-                                <input name="accept" type="submit" class="btn btn-hero btn-circled bg-success" value="Accept">
-                            </div>
-                            <div class="col-md-2 form-group">
-                                <input name="reject" type="reset" class="btn btn-hero btn-circled bg-danger" value="Reject">
-                            </div>
-                        </div>
-                    </form>
+                <div id="company_approval" class="contact-form ">
+                    
                 </div>
             </div>
         </div>
@@ -278,21 +263,8 @@
         </div>
         <div class="row">
             <div class="col-lg-8 col-sm-12 m-auto">
-                <div class="contact-form ">
-                    <form class="contact__form admin_project_decision">
-                        <!-- end message -->
-                        <div class="row">
-                            <div class="col-md-8 form-group">
-                                <input name="project_decision" type="text" class="form-control" placeholder="Project Address" required>
-                            </div>
-                            <div class="col-md-2 form-group">
-                                <input name="accept" type="submit" class="btn btn-hero btn-circled bg-success" value="Accept">
-                            </div>
-                            <div class="col-md-2 form-group">
-                                <input name="reject" type="reset" class="btn btn-hero btn-circled bg-danger" value="Reject">
-                            </div>
-                        </div>
-                    </form>
+                <div id="project_approval" class="contact-form ">
+                    
                 </div>
             </div>
         </div>
@@ -310,6 +282,14 @@
                     </div>
                 </div>
             </div>
+            <div class="row flex-container">
+                <div id="balanceOf">
+                    
+                </div>
+                <div id="totalSupply">
+                    
+                </div>
+            </div>
 
             <div class="row flex-container">
                 <div class="">
@@ -317,7 +297,7 @@
                         <form class="contact__form buy_token_form">
                             <div class="row">
                                 <div class="col-sm-6 form-group">
-                                    <input name="buy_tokens" type="text" class="form-control" placeholder="Token Address" required>
+                                    <input name="buy_tokens" type="text" class="form-control" placeholder="Value" required>
                                 </div>
                                 <div class="col-sm-2 text-center">
                                     <input name="submit" type="submit" class=" btn btn-hero btn-circled" value="Buy!">
@@ -363,12 +343,6 @@
      <!-- Counterup -->
     <script src="plugins/counterup/jquery.waypoints.js"></script>
     <script src="plugins/counterup/jquery.counterup.min.js"></script>
-
-    <!-- Google Map -->
-    <script src="plugins/google-map/gmap3.min.js"></script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAkeLMlsiwzp6b3Gnaxd86lvakimwGA6UA&callback=initMap"></script>   
-    <!-- Contact Form -->
-    <script src="plugins/jquery/contact.js"></script>
     <script src="js/custom.js"></script>
 
     <script src="js/bootstrap.min.js"></script>
