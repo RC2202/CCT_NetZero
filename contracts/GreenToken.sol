@@ -284,7 +284,7 @@ contract GreenToken is ERC20, ERC20Burnable, Pausable, AccessControl {
     }
 
     function sellToken(  uint256 token) public{ //address _tokenAddress
-        // require(hasRole(COMPANY_ROLE,msg.sender) || hasRole(PROJECT_ROLE, msg.sender), "Not allowed");
+        require(hasRole(COMPANY_ROLE,msg.sender) || hasRole(PROJECT_ROLE, msg.sender), "Not allowed");
         // IERC20 tokenContract = IERC20(_tokenAddress);
         //address(this) take this-> msg sender i guess
         payable(msg.sender).transfer( token*(10**18)/Rate);
