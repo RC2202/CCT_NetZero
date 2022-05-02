@@ -629,7 +629,7 @@
   "sourceMap": "66:352:1:-:0;;;90:33;;;-1:-1:-1;;;;;;90:33:1;113:10;90:33;;;66:352;;;;;;;;;;;;;;;;",
   "deployedSourceMap": "66:352:1:-:0;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;127:36;;;;;;;;;1006:25:14;;;994:2;979:18;127:36:1;;;;;;;;90:33;;;;;;;;;;;;385:42:14;373:55;;;355:74;;343:2;328:18;90:33:1;310:125:14;313:103:1;;;;;;:::i;:::-;;:::i;:::-;;;225:5;;;;211:10;:19;196:101;;;;;;;642:2:14;196:101:1;;;624:21:14;681:2;661:18;;;654:30;720:34;700:18;;;693:62;791:21;771:18;;;764:49;830:19;;196:101:1;;;;;;;;375:24:::1;:36:::0;313:103::o;14:190:14:-;;126:2;114:9;105:7;101:23;97:32;94:2;;;147:6;139;132:22;94:2;-1:-1:-1;175:23:14;;84:120;-1:-1:-1;84:120:14:o",
   "source": "// SPDX-License-Identifier: MIT\npragma solidity >=0.4.22 <0.9.0;\n\ncontract Migrations {\n  address public owner = msg.sender;\n  uint public last_completed_migration;\n\n  modifier restricted() {\n    require(\n      msg.sender == owner,\n      \"This function is restricted to the contract's owner\"\n    );\n    _;\n  }\n\n  function setCompleted(uint completed) public restricted {\n    last_completed_migration = completed;\n  }\n}\n",
-  "sourcePath": "C:\\Users\\rahul\\Documents\\GitHub\\CCT_NetZero\\contracts\\Migrations.sol",
+  "sourcePath": "/home/trowk/CCT_NetZero/contracts/Migrations.sol",
   "ast": {
     "absolutePath": "project:/contracts/Migrations.sol",
     "exportedSymbols": {
@@ -1428,12 +1428,12 @@
     "5777": {
       "events": {},
       "links": {},
-      "address": "0xec3cA188c5C098B66696434a9FD261A68E8fEd85",
-      "transactionHash": "0xb135afead782ce0bc57410f90ac191e9a531a12d47405720ad45b9c7984d3e17"
+      "address": "0xd4BDB0Fcd767503e50a4d51273bd8DcdD8f829b8",
+      "transactionHash": "0xc12eb5e90db5480c8150a529719dfe31a015bb7bae7450638b0dd14588c050d6"
     }
   },
-  "schemaVersion": "3.4.4",
-  "updatedAt": "2022-04-21T23:19:33.786Z",
+  "schemaVersion": "3.4.6",
+  "updatedAt": "2022-04-21T23:30:46.978Z",
   "networkType": "ethereum",
   "devdoc": {
     "kind": "dev",
